@@ -12,6 +12,7 @@ local BS_BONUS = { 15, 30, 48, 69, 90, 135, 165, 210 };
 local AB_BONUS = { 70, 100, 125, 185, 230, 290 };
 local SS_BONUS = { 3, 6, 10, 15, 22, 33, 52, 68 };
 
+
 function nextarg(msg, pattern)
     if ( not msg or not pattern ) then
         return nil, nil;
@@ -84,7 +85,7 @@ function GetWeapon(msg)
 
     if (not cmd) -- use equipped weapon
     then
-        return GetInventoryItemLink("player", GetInventorySlotInfo("MainHandSlot"));
+        return currentWeapon;
     else
         return msg;
     end;
@@ -103,12 +104,17 @@ function GetAttackPowerOnWeapon(weaponLink)
     return strAPonWeapon + agiAPonWeapon + rawAP;
 end;
 
-function GetWeaponMinMaxSpeedDamage(weaponLink)
-    GameTooltip:SetOwner(UIParent,"ANCHOR_NONE");
-    GameTooltip:SetHyperlink(weaponLink);
+function GetWeaponMinMaxSpeedDamage(weaponLink, tooltip)
+    if (not tooltip)
+    then
+        GameTooltip:SetOwner(UIParent,"ANCHOR_NONE");
+        GameTooltip:SetHyperlink(weaponLink);
+    end;
+
+    local tooltipToParse = tooltip or GameTooltip;
     
     local _, minDmg, maxDmg, speed;
-    for k=1,GameTooltip:NumLines(),1
+    for k=1,tooltipToParse:NumLines(),1
     do
         if (not minDmg and not maxDmg)
         then
@@ -127,7 +133,11 @@ function GetWeaponMinMaxSpeedDamage(weaponLink)
             break;
         end;
     end;
-    GameTooltip:Hide();
+
+    if (not tooltip)
+    then
+        GameTooltip:Hide();
+    end;
 
     if minDmg and maxDmg and speed then
         return tonumber(minDmg), tonumber(maxDmg), tonumber(speed);
@@ -136,20 +146,25 @@ function GetWeaponMinMaxSpeedDamage(weaponLink)
     end
 end;
 
-function GetWeaponDamage(weaponLink)
+-- currently equipped weapon
+local currentWeapon = GetInventoryItemLink("player", GetInventorySlotInfo("MainHandSlot"));
+
+function GetWeaponDamage(weaponLink, tooltip)
     local baseAP, posAPBuff, negAPBuff = UnitAttackPower("player");
 
-    local currentWeaponAP = GetAttackPowerOnWeapon(GetInventoryItemLink("player", GetInventorySlotInfo("MainHandSlot")));
+    local currentWeaponAP = GetAttackPowerOnWeapon(currentWeapon);
     local targetWeaponAP = GetAttackPowerOnWeapon(weaponLink);
 
     local attackPowerWithTargetWeapon = baseAP - currentWeaponAP + targetWeaponAP;
     local attackPowerBonusDamage = attackPowerWithTargetWeapon / 14;
 
-    local lowDmg, hiDmg, speed = GetWeaponMinMaxSpeedDamage(weaponLink);
+    local lowDmg, hiDmg, speed = GetWeaponMinMaxSpeedDamage(weaponLink, tooltip);
     local weaponDamageBonus = speed * attackPowerBonusDamage;
 
     return lowDmg + weaponDamageBonus, hiDmg + weaponDamageBonus;
 end;
+
+local currentLowDmg, currentHighDmg = GetWeaponDamage(currentWeapon, nil);
 
 function round(x)
     return x + 0.5 - (x + 0.5) % 1
@@ -195,20 +210,20 @@ function GetDiffSign(diff)
     end;
 end;
 
-function PrintSkillDamage(skillName, oldMin, oldMax, oldCritMin, oldCritMax, newMin, newMax, newCritMin, newCritMax)
+function GetSkillDamageString(skillName, oldMin, oldMax, oldCritMin, oldCritMax, newMin, newMax, newCritMin, newCritMax)
     local diffMin = newMin - oldMin;
     local diffMax = newMax - oldMax;
     local diffCritMin = newCritMin - oldCritMin;
     local diffCritMax = newCritMax - oldCritMax;
 
-    print(string.format("%s: %d - %d (%s%d|r - %s%d|r), crit: %d - %d (%s%d|r - %s%d|r)", 
+    return string.format("%s: %d - %d (%s%d|r - %s%d|r), crit: %d - %d (%s%d|r - %s%d|r)", 
         skillName, 
         newMin, newMax,
         GetDiffSign(diffMin), diffMin,
         GetDiffSign(diffMax), diffMax,
         newCritMin, newCritMax,
         GetDiffSign(diffCritMin), diffCritMin,
-        GetDiffSign(diffCritMax), diffCritMax));
+        GetDiffSign(diffCritMax), diffCritMax);
 end;
 
 SLASH_BackstabCalculator1, SLASH_BackstabCalculator2 = '/bsc', '/backstabcalculator';
@@ -222,10 +237,9 @@ SlashCmdList["BackstabCalculator"] = function(msg)
             print("Damage with:", weaponLink);
 
             -- Min-Max damage on the weapon
-            local currentLowDmg, currentHighDmg = GetWeaponDamage(GetInventoryItemLink("player", GetInventorySlotInfo("MainHandSlot")));
-            local targetLowDmg, targetHighDmg = GetWeaponDamage(weaponLink);
+            local targetLowDmg, targetHighDmg = GetWeaponDamage(weaponLink, nil);
             
-            PrintSkillDamage("White damage", round(currentLowDmg), round(currentHighDmg), round(currentLowDmg * 2), round(currentHighDmg * 2), round(targetLowDmg), round(targetHighDmg), round(targetLowDmg * 2), round(targetHighDmg * 2));
+            print(GetSkillDamageString("White damage", round(currentLowDmg), round(currentHighDmg), round(currentLowDmg * 2), round(currentHighDmg * 2), round(targetLowDmg), round(targetHighDmg), round(targetLowDmg * 2), round(targetHighDmg * 2)));
 
             -- points in Opportunity
             local _, _, _, _, opportunityRank, _, _, _ = GetTalentInfo(3, 2);
@@ -252,7 +266,7 @@ SlashCmdList["BackstabCalculator"] = function(msg)
                 local currentBsMin, currentBsMax, currentBsCritMin, currentBsCritMax = GetBackstabDamage(currentLowDmg, currentHighDmg, opportunityRank, backStabRank, lethalityRank);
                 local newBsMin, newBsMax, newBsCritMin, newBsCritMax = GetBackstabDamage(targetLowDmg, targetHighDmg, opportunityRank, backStabRank, lethalityRank);
 
-                PrintSkillDamage("Backstab", currentBsMin, currentBsMax, currentBsCritMin, currentBsCritMax, newBsMin, newBsMax, newBsCritMin, newBsCritMax);
+                print(GetSkillDamageString("Backstab", currentBsMin, currentBsMax, currentBsCritMin, currentBsCritMax, newBsMin, newBsMax, newBsCritMin, newBsCritMax));
             end;
 
             -- Ambush damage
@@ -261,7 +275,7 @@ SlashCmdList["BackstabCalculator"] = function(msg)
                 local currentAmbushMin, currentAmbushMax, currentAmbushCritMin, currentAmbushCritMax = GetAmbushDamage(currentLowDmg, currentHighDmg, opportunityRank, ambushRank);
                 local newAmbushMin, newAmbushMax, newAmbushCritMin, newAmbushCritMax = GetAmbushDamage(targetLowDmg, targetHighDmg, opportunityRank, ambushRank);
 
-                PrintSkillDamage("Ambush", currentAmbushMin, currentAmbushMax, currentAmbushCritMin, currentAmbushCritMax, newAmbushMin, newAmbushMax, newAmbushCritMin, newAmbushCritMax);
+                print(GetSkillDamageString("Ambush", currentAmbushMin, currentAmbushMax, currentAmbushCritMin, currentAmbushCritMax, newAmbushMin, newAmbushMax, newAmbushCritMin, newAmbushCritMax));
             end;
 
             -- Sinister Strike damage
@@ -270,10 +284,85 @@ SlashCmdList["BackstabCalculator"] = function(msg)
                 local currentSsMin, currentSsMax, currentSsCritMin, currentSsCritMax = GetSinisterStringDamage(currentLowDmg, currentHighDmg, sinisterStrikeRank, aggressionRank, lethalityRank);
                 local newSsMin, newSsMax, newSsCritMin, newSsCritMax = GetSinisterStringDamage(targetLowDmg, targetHighDmg, sinisterStrikeRank, aggressionRank, lethalityRank);
                 
-                PrintSkillDamage("Sinister Strike", currentSsMin, currentSsMax, currentSsCritMin, currentSsCritMax, newSsMin, newSsMax, newSsCritMin, newSsCritMax);
+                print(GetSkillDamageString("Sinister Strike", currentSsMin, currentSsMax, currentSsCritMin, currentSsCritMax, newSsMin, newSsMax, newSsCritMin, newSsCritMax));
             end;
         else
             print("Not a Rogue weapon.");
         end;
     end;
 end;
+
+local function GameTooltip_OnTooltipSetItem(tooltip)
+    local _, weaponLink = tooltip:GetItem()
+    if not weaponLink then return; end
+    
+    if (IsRogueWeapon(weaponLink))
+    then
+        -- Min-Max damage on the weapon
+        local targetLowDmg, targetHighDmg = GetWeaponDamage(weaponLink, tooltip);
+
+        tooltip:AddLine(" ") --blank line
+
+        tooltip:AddLine(GetSkillDamageString("White damage", round(currentLowDmg), round(currentHighDmg), round(currentLowDmg * 2), round(currentHighDmg * 2), round(targetLowDmg), round(targetHighDmg), round(targetLowDmg * 2), round(targetHighDmg * 2)));
+
+        -- points in Opportunity
+        local _, _, _, _, opportunityRank, _, _, _ = GetTalentInfo(3, 2);
+
+        -- points in Improved Ambush
+        local _, _, _, _, impAmbushRank, _, _, _ = GetTalentInfo(3, 8);
+
+        -- points in Improved Backstab
+        local _, _, _, _, impBackstabRank, _, _, _ = GetTalentInfo(2, 4);
+
+        -- points in Lethality
+        local _, _, _, _, lethalityRank, _, _, _ = GetTalentInfo(1, 9);
+
+        -- points in Aggression
+        local _, _, _, _, aggressionRank, _, _, _ = GetTalentInfo(2, 18);
+
+        local backStabRank = rank_names[GetSpellSubtext("Backstab")];
+        local ambushRank = rank_names[GetSpellSubtext("Ambush")];
+        local sinisterStrikeRank = rank_names[GetSpellSubtext("Sinister Strike")];    
+
+        -- Backstab damage
+        if (ShowBackstab(weaponLink))
+        then
+            local currentBsMin, currentBsMax, currentBsCritMin, currentBsCritMax = GetBackstabDamage(currentLowDmg, currentHighDmg, opportunityRank, backStabRank, lethalityRank);
+            local newBsMin, newBsMax, newBsCritMin, newBsCritMax = GetBackstabDamage(targetLowDmg, targetHighDmg, opportunityRank, backStabRank, lethalityRank);
+
+            tooltip:AddLine(GetSkillDamageString("Backstab", currentBsMin, currentBsMax, currentBsCritMin, currentBsCritMax, newBsMin, newBsMax, newBsCritMin, newBsCritMax));
+        end;
+
+        -- Ambush damage
+        if (ShowAmbush(weaponLink)) 
+        then
+            local currentAmbushMin, currentAmbushMax, currentAmbushCritMin, currentAmbushCritMax = GetAmbushDamage(currentLowDmg, currentHighDmg, opportunityRank, ambushRank);
+            local newAmbushMin, newAmbushMax, newAmbushCritMin, newAmbushCritMax = GetAmbushDamage(targetLowDmg, targetHighDmg, opportunityRank, ambushRank);
+
+            tooltip:AddLine(GetSkillDamageString("Ambush", currentAmbushMin, currentAmbushMax, currentAmbushCritMin, currentAmbushCritMax, newAmbushMin, newAmbushMax, newAmbushCritMin, newAmbushCritMax));
+        end;
+
+        -- Sinister Strike damage
+        if (ShowSinisterStrike(weaponLink))
+        then
+            local currentSsMin, currentSsMax, currentSsCritMin, currentSsCritMax = GetSinisterStringDamage(currentLowDmg, currentHighDmg, sinisterStrikeRank, aggressionRank, lethalityRank);
+            local newSsMin, newSsMax, newSsCritMin, newSsCritMax = GetSinisterStringDamage(targetLowDmg, targetHighDmg, sinisterStrikeRank, aggressionRank, lethalityRank);
+            
+            tooltip:AddLine(GetSkillDamageString("Sinister Strike", currentSsMin, currentSsMax, currentSsCritMin, currentSsCritMax, newSsMin, newSsMax, newSsCritMin, newSsCritMax));
+        end;
+    end;
+end;
+
+GameTooltip:HookScript("OnTooltipSetItem", GameTooltip_OnTooltipSetItem);
+
+local frame = CreateFrame("FRAME", "BackstabCalculatorFrame");
+frame:RegisterEvent("UNIT_INVENTORY_CHANGED");
+local function eventHandler(self, event, ...)
+    local unitName = ...;
+    if (unitName == "player")
+    then
+        currentWeapon = GetInventoryItemLink("player", GetInventorySlotInfo("MainHandSlot"));
+        currentLowDmg, currentHighDmg = GetWeaponDamage(currentWeapon, nil);
+    end;
+end
+frame:SetScript("OnEvent", eventHandler);
