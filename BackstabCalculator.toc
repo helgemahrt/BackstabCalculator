@@ -1,3 +1,6 @@
 ## Interface: 11302
-## Title: BackstabCalculator
+## Title: Backstab Calculator
+## Author: tZeequemola
+## Notes: Calculates Backstab, Ambush and Sinister Strike damage of Rogues in Classic WoW.
+## Version: 1.0.0 BETA
 core.lua
