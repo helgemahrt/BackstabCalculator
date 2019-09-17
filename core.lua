@@ -1,3 +1,14 @@
+local oldCreateFrame = CreateFrame;
+function CreateFrame(frameType, frameName, parentFrame, inheritsFrame)
+    local result = oldCreateFrame(frameType, frameName, parentFrame, inheritsFrame);
+    if (string.upper(frameType) == "GAMETOOLTIP" or inheritsFrame == "GameTooltipTemplate")
+    then
+        print(frameName);
+        result:HookScript("OnTooltipSetItem", BackStabCalculator_OnTooltipSetItem);
+    end;
+    return result;
+end;
+
 -- lookups
 local rank_names =
 {
@@ -292,9 +303,13 @@ SlashCmdList["BackstabCalculator"] = function(msg)
     end;
 end;
 
-local function GameTooltip_OnTooltipSetItem(tooltip)
-    local _, weaponLink = tooltip:GetItem()
-    if not weaponLink then return; end
+function BackStabCalculator_OnTooltipSetItem(tooltip)
+    local _, weaponLink = tooltip:GetItem();
+    if not weaponLink 
+    then
+        print("No item on tooltip");
+        return; 
+    end;
     
     if (IsRogueWeapon(weaponLink))
     then
@@ -351,18 +366,30 @@ local function GameTooltip_OnTooltipSetItem(tooltip)
             tooltip:AddLine(GetSkillDamageString("Sinister Strike", currentSsMin, currentSsMax, currentSsCritMin, currentSsCritMax, newSsMin, newSsMax, newSsCritMin, newSsCritMax));
         end;
     end;
+
+    return tooltip;
 end;
 
-GameTooltip:HookScript("OnTooltipSetItem", GameTooltip_OnTooltipSetItem);
+GameTooltip:HookScript("OnTooltipSetItem", BackStabCalculator_OnTooltipSetItem);
 
 local frame = CreateFrame("FRAME", "BackstabCalculatorFrame");
 frame:RegisterEvent("UNIT_INVENTORY_CHANGED");
-local function eventHandler(self, event, ...)
-    local unitName = ...;
-    if (unitName == "player")
+frame:RegisterEvent("PLAYER_ENTERING_WORLD");
+function eventHandler(self, event, ...)
+    if (event == "PLAYER_ENTERING_WORLD")
     then
         currentWeapon = GetInventoryItemLink("player", GetInventorySlotInfo("MainHandSlot"));
         currentLowDmg, currentHighDmg = GetWeaponDamage(currentWeapon, nil);
+    end;
+
+    if (event == "UNIT_INVENTORY_CHANGED")
+    then
+        local unitName = ...;
+        if (unitName == "player")
+        then
+            currentWeapon = GetInventoryItemLink("player", GetInventorySlotInfo("MainHandSlot"));
+            currentLowDmg, currentHighDmg = GetWeaponDamage(currentWeapon, nil);
+        end;
     end;
 end
 frame:SetScript("OnEvent", eventHandler);
