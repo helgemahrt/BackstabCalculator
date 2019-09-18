@@ -177,6 +177,7 @@ function GetWeaponDamage(weaponLink, tooltip)
         local weaponDamageBonus = speed * attackPowerBonusDamage;
         --print("weaponDamageBonus", weaponDamageBonus);
 
+        --print("weapon base damage", lowDmg + weaponDamageBonus, hiDmg + weaponDamageBonus);
         return lowDmg + weaponDamageBonus, hiDmg + weaponDamageBonus;
     end;
 end;
@@ -263,7 +264,7 @@ SlashCmdList["BackstabCalculator"] = function(msg)
             local targetLowDmg, targetHighDmg = GetWeaponDamage(weaponLink, nil);
             print ("Weapon dmg:", currentLowDmg, currentHighDmg, targetLowDmg, targetHighDmg);
             
-            print(GetSkillDamageString("White damage", currentLowDmg, currentHighDmg, currentLowDmg * 2, currentHighDmg * 2, targetLowDmg, targetHighDmg, targetLowDmg * 2, targetHighDmg * 2));
+            print(GetSkillDamageString("White damage", targetLowDmg, targetHighDmg, targetLowDmg * 2, targetHighDmg * 2, currentLowDmg, currentHighDmg, currentLowDmg * 2, currentHighDmg * 2));
 
             -- points in Opportunity
             local _, _, _, _, opportunityRank, _, _, _ = GetTalentInfo(3, 2);
@@ -293,7 +294,7 @@ SlashCmdList["BackstabCalculator"] = function(msg)
                 then
                     local currentBsMin, currentBsMax, currentBsCritMin, currentBsCritMax = GetBackstabDamage(currentLowDmg, currentHighDmg, opportunityRank, backStabRank, lethalityRank);
                     
-                    print(GetSkillDamageString("Backstab", currentBsMin, currentBsMax, currentBsCritMin, currentBsCritMax, newBsMin, newBsMax, newBsCritMin, newBsCritMax));
+                    print(GetSkillDamageString("Backstab", newBsMin, newBsMax, newBsCritMin, newBsCritMax, currentBsMin, currentBsMax, currentBsCritMin, currentBsCritMax));
                 else
                     print(GetSkillDamageString("Backstab", newBsMin, newBsMax, newBsCritMin, newBsCritMax));
                 end;
@@ -308,7 +309,7 @@ SlashCmdList["BackstabCalculator"] = function(msg)
                 then
                     local currentAmbushMin, currentAmbushMax, currentAmbushCritMin, currentAmbushCritMax = GetAmbushDamage(currentLowDmg, currentHighDmg, opportunityRank, ambushRank);
 
-                    print(GetSkillDamageString("Ambush", currentAmbushMin, currentAmbushMax, currentAmbushCritMin, currentAmbushCritMax, newAmbushMin, newAmbushMax, newAmbushCritMin, newAmbushCritMax));
+                    print(GetSkillDamageString("Ambush", newAmbushMin, newAmbushMax, newAmbushCritMin, newAmbushCritMax, currentAmbushMin, currentAmbushMax, currentAmbushCritMin, currentAmbushCritMax));
                 else
                     print(GetSkillDamageString("Ambush", newAmbushMin, newAmbushMax, newAmbushCritMin, newAmbushCritMax));
                 end;
@@ -320,7 +321,7 @@ SlashCmdList["BackstabCalculator"] = function(msg)
                 local currentSsMin, currentSsMax, currentSsCritMin, currentSsCritMax = GetSinisterStringDamage(currentLowDmg, currentHighDmg, sinisterStrikeRank, aggressionRank, lethalityRank);
                 local newSsMin, newSsMax, newSsCritMin, newSsCritMax = GetSinisterStringDamage(targetLowDmg, targetHighDmg, sinisterStrikeRank, aggressionRank, lethalityRank);
                 
-                print(GetSkillDamageString("Sinister Strike", currentSsMin, currentSsMax, currentSsCritMin, currentSsCritMax, newSsMin, newSsMax, newSsCritMin, newSsCritMax));
+                print(GetSkillDamageString("Sinister Strike", newSsMin, newSsMax, newSsCritMin, newSsCritMax, currentSsMin, currentSsMax, currentSsCritMin, currentSsCritMax));
             end;
         else
             print("Not a Rogue weapon.");
@@ -346,7 +347,7 @@ function AddLinesToTooltip(tooltip, weaponLink)
 
         tooltip:AddLine(" ") --blank line
 
-        tooltip:AddLine(GetSkillDamageString("White damage", currentLowDmg, currentHighDmg, currentLowDmg * 2, currentHighDmg * 2, targetLowDmg, targetHighDmg, targetLowDmg * 2, targetHighDmg * 2));
+        tooltip:AddLine(GetSkillDamageString("White damage", targetLowDmg, targetHighDmg, targetLowDmg * 2, targetHighDmg * 2, currentLowDmg, currentHighDmg, currentLowDmg * 2, currentHighDmg * 2));
 
         -- points in Opportunity
         local _, _, _, _, opportunityRank, _, _, _ = GetTalentInfo(3, 2);
@@ -376,7 +377,7 @@ function AddLinesToTooltip(tooltip, weaponLink)
             then
                 local currentBsMin, currentBsMax, currentBsCritMin, currentBsCritMax = GetBackstabDamage(currentLowDmg, currentHighDmg, opportunityRank, backStabRank, lethalityRank);
 
-                tooltip:AddLine(GetSkillDamageString("Backstab", currentBsMin, currentBsMax, currentBsCritMin, currentBsCritMax, newBsMin, newBsMax, newBsCritMin, newBsCritMax));
+                tooltip:AddLine(GetSkillDamageString("Backstab", newBsMin, newBsMax, newBsCritMin, newBsCritMax, currentBsMin, currentBsMax, currentBsCritMin, currentBsCritMax));
             else
                 tooltip:AddLine(GetSkillDamageString("Backstab", newBsMin, newBsMax, newBsCritMin, newBsCritMax));
             end;
@@ -390,7 +391,7 @@ function AddLinesToTooltip(tooltip, weaponLink)
             if (IsWeaponOfType("Daggers", currentWeapon))
             then
                 local currentAmbushMin, currentAmbushMax, currentAmbushCritMin, currentAmbushCritMax = GetAmbushDamage(currentLowDmg, currentHighDmg, opportunityRank, ambushRank);
-                tooltip:AddLine(GetSkillDamageString("Ambush", currentAmbushMin, currentAmbushMax, currentAmbushCritMin, currentAmbushCritMax, newAmbushMin, newAmbushMax, newAmbushCritMin, newAmbushCritMax));
+                tooltip:AddLine(GetSkillDamageString("Ambush", newAmbushMin, newAmbushMax, newAmbushCritMin, newAmbushCritMax, currentAmbushMin, currentAmbushMax, currentAmbushCritMin, currentAmbushCritMax));
             else
                 tooltip:AddLine(GetSkillDamageString("Ambush", newAmbushMin, newAmbushMax, newAmbushCritMin, newAmbushCritMax));
             end;
@@ -402,7 +403,7 @@ function AddLinesToTooltip(tooltip, weaponLink)
             local currentSsMin, currentSsMax, currentSsCritMin, currentSsCritMax = GetSinisterStringDamage(currentLowDmg, currentHighDmg, sinisterStrikeRank, aggressionRank, lethalityRank);
             local newSsMin, newSsMax, newSsCritMin, newSsCritMax = GetSinisterStringDamage(targetLowDmg, targetHighDmg, sinisterStrikeRank, aggressionRank, lethalityRank);
             
-            tooltip:AddLine(GetSkillDamageString("Sinister Strike", currentSsMin, currentSsMax, currentSsCritMin, currentSsCritMax, newSsMin, newSsMax, newSsCritMin, newSsCritMax));
+            tooltip:AddLine(GetSkillDamageString("Sinister Strike", newSsMin, newSsMax, newSsCritMin, newSsCritMax, currentSsMin, currentSsMax, currentSsCritMin, currentSsCritMax));
         end;
     end;
 end;
