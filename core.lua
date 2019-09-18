@@ -157,7 +157,7 @@ function GetWeaponMinMaxSpeedDamage(weaponLink, tooltip)
 end;
 
 function GetWeaponDamage(weaponLink, tooltip)
-    if (weaponLink)
+    if (weaponLink and currentWeapon)
     then
         local baseAP, posAPBuff, negAPBuff = UnitAttackPower("player");
         --print("UnitAttackPower", baseAP, posAPBuff, negAPBuff);
