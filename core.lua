@@ -225,20 +225,28 @@ function GetDiffSign(diff)
     end;
 end;
 
-function GetSkillDamageString(skillName, oldMin, oldMax, oldCritMin, oldCritMax, newMin, newMax, newCritMin, newCritMax)
-    local diffMin = newMin - oldMin;
-    local diffMax = newMax - oldMax;
-    local diffCritMin = newCritMin - oldCritMin;
-    local diffCritMax = newCritMax - oldCritMax;
+function GetSkillDamageString(skillName, newMin, newMax, newCritMin, newCritMax, oldMin, oldMax, oldCritMin, oldCritMax)
+    if (oldMin and oldMax and oldCritMin and oldCritMax)
+    then
+        local diffMin = newMin - oldMin;
+        local diffMax = newMax - oldMax;
+        local diffCritMin = newCritMin - oldCritMin;
+        local diffCritMax = newCritMax - oldCritMax;
 
-    return string.format("%s: %d - %d (%s%d|r - %s%d|r), crit: %d - %d (%s%d|r - %s%d|r)", 
-        skillName, 
-        round(newMin), round(newMax),
-        GetDiffSign(diffMin), round(diffMin),
-        GetDiffSign(diffMax), round(diffMax),
-        round(newCritMin), round(newCritMax),
-        GetDiffSign(diffCritMin), round(diffCritMin),
-        GetDiffSign(diffCritMax), round(diffCritMax));
+        return string.format("%s: %d - %d (%s%d|r - %s%d|r), crit: %d - %d (%s%d|r - %s%d|r)", 
+            skillName, 
+            round(newMin), round(newMax),
+            GetDiffSign(diffMin), round(diffMin),
+            GetDiffSign(diffMax), round(diffMax),
+            round(newCritMin), round(newCritMax),
+            GetDiffSign(diffCritMin), round(diffCritMin),
+            GetDiffSign(diffCritMax), round(diffCritMax));
+    else
+        return string.format("%s: %d - %d, crit: %d - %d", 
+            skillName, 
+            round(newMin), round(newMax),
+            round(newCritMin), round(newCritMax));
+    end
 end;
 
 SLASH_BackstabCalculator1, SLASH_BackstabCalculator2 = '/bsc', '/backstabcalculator';
@@ -279,19 +287,31 @@ SlashCmdList["BackstabCalculator"] = function(msg)
             -- Backstab damage
             if (ShowBackstab(weaponLink))
             then
-                local currentBsMin, currentBsMax, currentBsCritMin, currentBsCritMax = GetBackstabDamage(currentLowDmg, currentHighDmg, opportunityRank, backStabRank, lethalityRank);
                 local newBsMin, newBsMax, newBsCritMin, newBsCritMax = GetBackstabDamage(targetLowDmg, targetHighDmg, opportunityRank, backStabRank, lethalityRank);
 
-                print(GetSkillDamageString("Backstab", currentBsMin, currentBsMax, currentBsCritMin, currentBsCritMax, newBsMin, newBsMax, newBsCritMin, newBsCritMax));
+                if (IsWeaponOfType("Daggers", currentWeapon))
+                then
+                    local currentBsMin, currentBsMax, currentBsCritMin, currentBsCritMax = GetBackstabDamage(currentLowDmg, currentHighDmg, opportunityRank, backStabRank, lethalityRank);
+                    
+                    print(GetSkillDamageString("Backstab", currentBsMin, currentBsMax, currentBsCritMin, currentBsCritMax, newBsMin, newBsMax, newBsCritMin, newBsCritMax));
+                else
+                    print(GetSkillDamageString("Backstab", newBsMin, newBsMax, newBsCritMin, newBsCritMax));
+                end;
             end;
 
             -- Ambush damage
             if (ShowAmbush(weaponLink)) 
             then
-                local currentAmbushMin, currentAmbushMax, currentAmbushCritMin, currentAmbushCritMax = GetAmbushDamage(currentLowDmg, currentHighDmg, opportunityRank, ambushRank);
                 local newAmbushMin, newAmbushMax, newAmbushCritMin, newAmbushCritMax = GetAmbushDamage(targetLowDmg, targetHighDmg, opportunityRank, ambushRank);
 
-                print(GetSkillDamageString("Ambush", currentAmbushMin, currentAmbushMax, currentAmbushCritMin, currentAmbushCritMax, newAmbushMin, newAmbushMax, newAmbushCritMin, newAmbushCritMax));
+                if (IsWeaponOfType("Daggers", currentWeapon))
+                then
+                    local currentAmbushMin, currentAmbushMax, currentAmbushCritMin, currentAmbushCritMax = GetAmbushDamage(currentLowDmg, currentHighDmg, opportunityRank, ambushRank);
+
+                    print(GetSkillDamageString("Ambush", currentAmbushMin, currentAmbushMax, currentAmbushCritMin, currentAmbushCritMax, newAmbushMin, newAmbushMax, newAmbushCritMin, newAmbushCritMax));
+                else
+                    print(GetSkillDamageString("Ambush", newAmbushMin, newAmbushMax, newAmbushCritMin, newAmbushCritMax));
+                end;
             end;
 
             -- Sinister Strike damage
@@ -350,19 +370,30 @@ function AddLinesToTooltip(tooltip, weaponLink)
         -- Backstab damage
         if (ShowBackstab(weaponLink))
         then
-            local currentBsMin, currentBsMax, currentBsCritMin, currentBsCritMax = GetBackstabDamage(currentLowDmg, currentHighDmg, opportunityRank, backStabRank, lethalityRank);
             local newBsMin, newBsMax, newBsCritMin, newBsCritMax = GetBackstabDamage(targetLowDmg, targetHighDmg, opportunityRank, backStabRank, lethalityRank);
 
-            tooltip:AddLine(GetSkillDamageString("Backstab", currentBsMin, currentBsMax, currentBsCritMin, currentBsCritMax, newBsMin, newBsMax, newBsCritMin, newBsCritMax));
+            if (IsWeaponOfType("Daggers", currentWeapon))
+            then
+                local currentBsMin, currentBsMax, currentBsCritMin, currentBsCritMax = GetBackstabDamage(currentLowDmg, currentHighDmg, opportunityRank, backStabRank, lethalityRank);
+
+                tooltip:AddLine(GetSkillDamageString("Backstab", currentBsMin, currentBsMax, currentBsCritMin, currentBsCritMax, newBsMin, newBsMax, newBsCritMin, newBsCritMax));
+            else
+                tooltip:AddLine(GetSkillDamageString("Backstab", newBsMin, newBsMax, newBsCritMin, newBsCritMax));
+            end;
         end;
 
         -- Ambush damage
         if (ShowAmbush(weaponLink)) 
         then
-            local currentAmbushMin, currentAmbushMax, currentAmbushCritMin, currentAmbushCritMax = GetAmbushDamage(currentLowDmg, currentHighDmg, opportunityRank, ambushRank);
             local newAmbushMin, newAmbushMax, newAmbushCritMin, newAmbushCritMax = GetAmbushDamage(targetLowDmg, targetHighDmg, opportunityRank, ambushRank);
 
-            tooltip:AddLine(GetSkillDamageString("Ambush", currentAmbushMin, currentAmbushMax, currentAmbushCritMin, currentAmbushCritMax, newAmbushMin, newAmbushMax, newAmbushCritMin, newAmbushCritMax));
+            if (IsWeaponOfType("Daggers", currentWeapon))
+            then
+                local currentAmbushMin, currentAmbushMax, currentAmbushCritMin, currentAmbushCritMax = GetAmbushDamage(currentLowDmg, currentHighDmg, opportunityRank, ambushRank);
+                tooltip:AddLine(GetSkillDamageString("Ambush", currentAmbushMin, currentAmbushMax, currentAmbushCritMin, currentAmbushCritMax, newAmbushMin, newAmbushMax, newAmbushCritMin, newAmbushCritMax));
+            else
+                tooltip:AddLine(GetSkillDamageString("Ambush", newAmbushMin, newAmbushMax, newAmbushCritMin, newAmbushCritMax));
+            end;
         end;
 
         -- Sinister Strike damage
