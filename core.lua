@@ -111,6 +111,8 @@ function GetAttackPowerOnWeapon(weaponLink)
             return strAPonWeapon + agiAPonWeapon + rawAP;
         end;
     end;
+
+    return 0;
 end;
 
 function GetWeaponMinMaxSpeedDamage(weaponLink, tooltip)
