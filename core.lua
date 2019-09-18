@@ -12,6 +12,9 @@ local BS_BONUS = { 15, 30, 48, 69, 90, 135, 165, 210 };
 local AB_BONUS = { 70, 100, 125, 185, 230, 290 };
 local SS_BONUS = { 3, 6, 10, 15, 22, 33, 52, 68 };
 
+-- currently equipped weapon
+local currentWeapon = GetInventoryItemLink("player", GetInventorySlotInfo("MainHandSlot"));
+local currentLowDmg, currentHighDmg;
 
 function nextarg(msg, pattern)
     if ( not msg or not pattern ) then
@@ -92,16 +95,22 @@ function GetWeapon(msg)
 end;
 
 function GetAttackPowerOnWeapon(weaponLink)
-    local stats = GetItemStats(weaponLink);
-
-    local agi = stats["ITEM_MOD_AGILITY_SHORT"] or 0;
-    local str = stats["ITEM_MOD_STRENGTH_SHORT"] or 0;
-    local rawAP = stats["ITEM_MOD_ATTACK_POWER_SHORT"] or 0;
-    
-    local strAPonWeapon = GetAttackPowerForStat(2, agi);
-    local agiAPonWeapon = GetAttackPowerForStat(1, str);
-    
-    return strAPonWeapon + agiAPonWeapon + rawAP;
+    if (weaponLink)
+    then
+        local stats = GetItemStats(weaponLink);
+        
+        if (stats)
+        then
+            local agi = stats["ITEM_MOD_AGILITY_SHORT"] or 0;
+            local str = stats["ITEM_MOD_STRENGTH_SHORT"] or 0;
+            local rawAP = stats["ITEM_MOD_ATTACK_POWER_SHORT"] or 0;
+            
+            local agiAPonWeapon = GetAttackPowerForStat(2, agi);
+            local strAPonWeapon = GetAttackPowerForStat(1, str);
+            
+            return strAPonWeapon + agiAPonWeapon + rawAP;
+        end;
+    end;
 end;
 
 function GetWeaponMinMaxSpeedDamage(weaponLink, tooltip)
@@ -147,25 +156,30 @@ function GetWeaponMinMaxSpeedDamage(weaponLink, tooltip)
     end
 end;
 
--- currently equipped weapon
-local currentWeapon = GetInventoryItemLink("player", GetInventorySlotInfo("MainHandSlot"));
-
 function GetWeaponDamage(weaponLink, tooltip)
-    local baseAP, posAPBuff, negAPBuff = UnitAttackPower("player");
+    if (weaponLink)
+    then
+        local baseAP, posAPBuff, negAPBuff = UnitAttackPower("player");
+        --print("UnitAttackPower", baseAP, posAPBuff, negAPBuff);
 
-    local currentWeaponAP = GetAttackPowerOnWeapon(currentWeapon);
-    local targetWeaponAP = GetAttackPowerOnWeapon(weaponLink);
+        local currentWeaponAP = GetAttackPowerOnWeapon(currentWeapon);
+        local targetWeaponAP = GetAttackPowerOnWeapon(weaponLink);
+        --print("Weapon AP", currentWeaponAP, targetWeaponAP);
 
-    local attackPowerWithTargetWeapon = baseAP - currentWeaponAP + targetWeaponAP;
-    local attackPowerBonusDamage = attackPowerWithTargetWeapon / 14;
+        local attackPowerWithTargetWeapon = baseAP - currentWeaponAP + targetWeaponAP;
+        --print("attackPowerWithTargetWeapon", attackPowerWithTargetWeapon);
 
-    local lowDmg, hiDmg, speed = GetWeaponMinMaxSpeedDamage(weaponLink, tooltip);
-    local weaponDamageBonus = speed * attackPowerBonusDamage;
+        local attackPowerBonusDamage = attackPowerWithTargetWeapon / 14;
+        --print("attackPowerBonusDamage", attackPowerBonusDamage);
 
-    return lowDmg + weaponDamageBonus, hiDmg + weaponDamageBonus;
+        local lowDmg, hiDmg, speed = GetWeaponMinMaxSpeedDamage(weaponLink, tooltip);
+        --print("GetWeaponMinMaxSpeedDamage", lowDmg, hiDmg, speed);
+        local weaponDamageBonus = speed * attackPowerBonusDamage;
+        --print("weaponDamageBonus", weaponDamageBonus);
+
+        return lowDmg + weaponDamageBonus, hiDmg + weaponDamageBonus;
+    end;
 end;
-
-local currentLowDmg, currentHighDmg = GetWeaponDamage(currentWeapon, nil);
 
 function round(x)
     return x + 0.5 - (x + 0.5) % 1
@@ -219,12 +233,12 @@ function GetSkillDamageString(skillName, oldMin, oldMax, oldCritMin, oldCritMax,
 
     return string.format("%s: %d - %d (%s%d|r - %s%d|r), crit: %d - %d (%s%d|r - %s%d|r)", 
         skillName, 
-        newMin, newMax,
-        GetDiffSign(diffMin), diffMin,
-        GetDiffSign(diffMax), diffMax,
-        newCritMin, newCritMax,
-        GetDiffSign(diffCritMin), diffCritMin,
-        GetDiffSign(diffCritMax), diffCritMax);
+        round(newMin), round(newMax),
+        GetDiffSign(diffMin), round(diffMin),
+        GetDiffSign(diffMax), round(diffMax),
+        round(newCritMin), round(newCritMax),
+        GetDiffSign(diffCritMin), round(diffCritMin),
+        GetDiffSign(diffCritMax), round(diffCritMax));
 end;
 
 SLASH_BackstabCalculator1, SLASH_BackstabCalculator2 = '/bsc', '/backstabcalculator';
@@ -239,8 +253,9 @@ SlashCmdList["BackstabCalculator"] = function(msg)
 
             -- Min-Max damage on the weapon
             local targetLowDmg, targetHighDmg = GetWeaponDamage(weaponLink, nil);
+            print ("Weapon dmg:", currentLowDmg, currentHighDmg, targetLowDmg, targetHighDmg);
             
-            print(GetSkillDamageString("White damage", round(currentLowDmg), round(currentHighDmg), round(currentLowDmg * 2), round(currentHighDmg * 2), round(targetLowDmg), round(targetHighDmg), round(targetLowDmg * 2), round(targetHighDmg * 2)));
+            print(GetSkillDamageString("White damage", currentLowDmg, currentHighDmg, currentLowDmg * 2, currentHighDmg * 2, targetLowDmg, targetHighDmg, targetLowDmg * 2, targetHighDmg * 2));
 
             -- points in Opportunity
             local _, _, _, _, opportunityRank, _, _, _ = GetTalentInfo(3, 2);
@@ -295,25 +310,23 @@ end;
 
 function BackStabCalculator_OnTooltipSetItem(tooltip)
     local _, weaponLink = tooltip:GetItem();
-    if not weaponLink 
+    if weaponLink 
     then
-        return; 
+        AddLinesToTooltip(tooltip, weaponLink);
     end;
-    
-    AddLinesToTooltip(tooltip, weaponLink);
 
     return tooltip;
 end;
 
 function AddLinesToTooltip(tooltip, weaponLink)
-    if (IsRogueWeapon(weaponLink))
+    if (IsRogueWeapon(weaponLink) and currentLowDmg and currentHighDmg)
     then
         -- Min-Max damage on the weapon
         local targetLowDmg, targetHighDmg = GetWeaponDamage(weaponLink, tooltip);
 
         tooltip:AddLine(" ") --blank line
 
-        tooltip:AddLine(GetSkillDamageString("White damage", round(currentLowDmg), round(currentHighDmg), round(currentLowDmg * 2), round(currentHighDmg * 2), round(targetLowDmg), round(targetHighDmg), round(targetLowDmg * 2), round(targetHighDmg * 2)));
+        tooltip:AddLine(GetSkillDamageString("White damage", currentLowDmg, currentHighDmg, currentLowDmg * 2, currentHighDmg * 2, targetLowDmg, targetHighDmg, targetLowDmg * 2, targetHighDmg * 2));
 
         -- points in Opportunity
         local _, _, _, _, opportunityRank, _, _, _ = GetTalentInfo(3, 2);
@@ -368,12 +381,20 @@ GameTooltip:HookScript("OnTooltipSetItem", BackStabCalculator_OnTooltipSetItem);
 local frame = CreateFrame("FRAME", "BackstabCalculatorFrame");
 frame:RegisterEvent("UNIT_INVENTORY_CHANGED");
 frame:RegisterEvent("PLAYER_ENTERING_WORLD");
+frame:RegisterEvent("UNIT_ATTACK_POWER");
+
 function eventHandler(self, event, ...)
-    local unitName = ...;
-    if (unitName == "player")
+    if (event == "PLAYER_ENTERING_WORLD")
     then
         currentWeapon = GetInventoryItemLink("player", GetInventorySlotInfo("MainHandSlot"));
         currentLowDmg, currentHighDmg = GetWeaponDamage(currentWeapon, nil);
+    else
+        local unitName = ...;
+        if (unitName == "player")
+        then
+            currentWeapon = GetInventoryItemLink("player", GetInventorySlotInfo("MainHandSlot"));
+            currentLowDmg, currentHighDmg = GetWeaponDamage(currentWeapon, nil);
+        end;
     end;
 end
 frame:SetScript("OnEvent", eventHandler);
