@@ -408,49 +408,53 @@ function AddLinesToTooltip(tooltip, weaponLink)
     end;
 end;
 
-GameTooltip:HookScript("OnTooltipSetItem", BackStabCalculator_OnTooltipSetItem);
+local _, class, _ = UnitClass("player");    
+if (class == "ROGUE")
+then
+    GameTooltip:HookScript("OnTooltipSetItem", BackStabCalculator_OnTooltipSetItem);
 
-local frame = CreateFrame("FRAME", "BackstabCalculatorFrame");
-frame:RegisterEvent("UNIT_INVENTORY_CHANGED");
-frame:RegisterEvent("PLAYER_ENTERING_WORLD");
-frame:RegisterEvent("UNIT_ATTACK_POWER");
+    local frame = CreateFrame("FRAME", "BackstabCalculatorFrame");
+    frame:RegisterEvent("UNIT_INVENTORY_CHANGED");
+    frame:RegisterEvent("PLAYER_ENTERING_WORLD");
+    frame:RegisterEvent("UNIT_ATTACK_POWER");
 
-function eventHandler(self, event, ...)
-    if (event == "PLAYER_ENTERING_WORLD")
-    then
-        currentWeapon = GetInventoryItemLink("player", GetInventorySlotInfo("MainHandSlot"));
-        currentLowDmg, currentHighDmg = GetWeaponDamage(currentWeapon, nil);
-    else
-        local unitName = ...;
-        if (unitName == "player")
+    function eventHandler(self, event, ...)
+        if (event == "PLAYER_ENTERING_WORLD")
         then
             currentWeapon = GetInventoryItemLink("player", GetInventorySlotInfo("MainHandSlot"));
             currentLowDmg, currentHighDmg = GetWeaponDamage(currentWeapon, nil);
+        else
+            local unitName = ...;
+            if (unitName == "player")
+            then
+                currentWeapon = GetInventoryItemLink("player", GetInventorySlotInfo("MainHandSlot"));
+                currentLowDmg, currentHighDmg = GetWeaponDamage(currentWeapon, nil);
+            end;
         end;
-    end;
-end
-frame:SetScript("OnEvent", eventHandler);
+    end
+    frame:SetScript("OnEvent", eventHandler);
 
-local origChatFrame_OnHyperlinkShow = ChatFrame_OnHyperlinkShow;
-ChatFrame_OnHyperlinkShow = function(...)
-    local chatFrame, link, text, button = ...;
-    local result = origChatFrame_OnHyperlinkShow(...);
-    
-    if (IsRogueWeapon(link))
-    then
-        ShowUIPanel(ItemRefTooltip);
-        if (not ItemRefTooltip:IsVisible()) then
-            ItemRefTooltip:SetOwner(UIParent, "ANCHOR_PRESERVE");
-        end
+    local origChatFrame_OnHyperlinkShow = ChatFrame_OnHyperlinkShow;
+    ChatFrame_OnHyperlinkShow = function(...)
+        local chatFrame, link, text, button = ...;
+        local result = origChatFrame_OnHyperlinkShow(...);
         
-        local _, itemLink, _, _, _, _, _, _, _, _, _ = GetItemInfo(link);
-        if (itemLink)
+        if (IsRogueWeapon(link))
         then
-            AddLinesToTooltip(ItemRefTooltip, itemLink);
+            ShowUIPanel(ItemRefTooltip);
+            if (not ItemRefTooltip:IsVisible()) then
+                ItemRefTooltip:SetOwner(UIParent, "ANCHOR_PRESERVE");
+            end
+            
+            local _, itemLink, _, _, _, _, _, _, _, _, _ = GetItemInfo(link);
+            if (itemLink)
+            then
+                AddLinesToTooltip(ItemRefTooltip, itemLink);
+            end;
+
+            ItemRefTooltip:Show(); ItemRefTooltip:Show();
         end;
 
-        ItemRefTooltip:Show(); ItemRefTooltip:Show();
+        return result;
     end;
-
-    return result;
 end;
