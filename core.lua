@@ -31,6 +31,7 @@ end;
 
 function GetWeaponType(weaponLink)
     local _, _, _, _, _, itemType, itemSubType, _, _, _, _ = GetItemInfo(weaponLink);
+    console.log('GetWeaponType', weaponLink, itemType, itemSubType);
     if (itemType == "Weapon")
     then
         return itemSubType;
