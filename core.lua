@@ -16,6 +16,12 @@ local SS_BONUS = { 3, 6, 10, 15, 22, 33, 52, 68 };
 local currentWeapon = GetInventoryItemLink("player", GetInventorySlotInfo("MainHandSlot"));
 local currentLowDmg, currentHighDmg;
 
+function UpdateCurrentWeapon()
+    currentWeapon = GetInventoryItemLink("player", GetInventorySlotInfo("MainHandSlot"));
+    currentLowDmg, currentHighDmg = GetWeaponDamage(currentWeapon, nil);
+    --print('UpdateCurrentWeapon', currentWeapon, currentLowDmg, currentHighDmg);
+end;
+
 function nextarg(msg, pattern)
     if ( not msg or not pattern ) then
         return nil, nil;
@@ -292,7 +298,7 @@ SlashCmdList["BackstabCalculator"] = function(msg)
             then
                 local newBsMin, newBsMax, newBsCritMin, newBsCritMax = GetBackstabDamage(targetLowDmg, targetHighDmg, opportunityRank, backStabRank, lethalityRank);
 
-                if (IsWeaponOfType("Daggers", currentWeapon))
+                if (IsWeaponOfType(currentWeapon, "Daggers"))
                 then
                     local currentBsMin, currentBsMax, currentBsCritMin, currentBsCritMax = GetBackstabDamage(currentLowDmg, currentHighDmg, opportunityRank, backStabRank, lethalityRank);
                     
@@ -307,7 +313,7 @@ SlashCmdList["BackstabCalculator"] = function(msg)
             then
                 local newAmbushMin, newAmbushMax, newAmbushCritMin, newAmbushCritMax = GetAmbushDamage(targetLowDmg, targetHighDmg, opportunityRank, ambushRank);
 
-                if (IsWeaponOfType("Daggers", currentWeapon))
+                if (IsWeaponOfType(currentWeapon, "Daggers"))
                 then
                     local currentAmbushMin, currentAmbushMax, currentAmbushCritMin, currentAmbushCritMax = GetAmbushDamage(currentLowDmg, currentHighDmg, opportunityRank, ambushRank);
 
@@ -375,7 +381,7 @@ function AddLinesToTooltip(tooltip, weaponLink)
         then
             local newBsMin, newBsMax, newBsCritMin, newBsCritMax = GetBackstabDamage(targetLowDmg, targetHighDmg, opportunityRank, backStabRank, lethalityRank);
 
-            if (IsWeaponOfType("Daggers", currentWeapon))
+            if (IsWeaponOfType(currentWeapon, "Daggers"))
             then
                 local currentBsMin, currentBsMax, currentBsCritMin, currentBsCritMax = GetBackstabDamage(currentLowDmg, currentHighDmg, opportunityRank, backStabRank, lethalityRank);
 
@@ -390,7 +396,7 @@ function AddLinesToTooltip(tooltip, weaponLink)
         then
             local newAmbushMin, newAmbushMax, newAmbushCritMin, newAmbushCritMax = GetAmbushDamage(targetLowDmg, targetHighDmg, opportunityRank, ambushRank);
 
-            if (IsWeaponOfType("Daggers", currentWeapon))
+            if (IsWeaponOfType(currentWeapon, "Daggers"))
             then
                 local currentAmbushMin, currentAmbushMax, currentAmbushCritMin, currentAmbushCritMax = GetAmbushDamage(currentLowDmg, currentHighDmg, opportunityRank, ambushRank);
                 tooltip:AddLine(GetSkillDamageString("Ambush", newAmbushMin, newAmbushMax, newAmbushCritMin, newAmbushCritMax, currentAmbushMin, currentAmbushMax, currentAmbushCritMin, currentAmbushCritMax));
@@ -423,14 +429,12 @@ then
     function eventHandler(self, event, ...)
         if (event == "PLAYER_ENTERING_WORLD")
         then
-            currentWeapon = GetInventoryItemLink("player", GetInventorySlotInfo("MainHandSlot"));
-            currentLowDmg, currentHighDmg = GetWeaponDamage(currentWeapon, nil);
+            UpdateCurrentWeapon();
         else
             local unitName = ...;
             if (unitName == "player")
             then
-                currentWeapon = GetInventoryItemLink("player", GetInventorySlotInfo("MainHandSlot"));
-                currentLowDmg, currentHighDmg = GetWeaponDamage(currentWeapon, nil);
+                UpdateCurrentWeapon();
             end;
         end;
     end
