@@ -8,7 +8,7 @@ local rank_names =
     ["Rank 6" ]= 6,["Rank 7" ]= 7,["Rank 8" ]= 8,["Rank 9" ]= 9,["Rank 11"]=10,
     ["Rank 12"]=11,["Rank 13"]=12,["Rank 14"]=13,["Rank 15"]=15,["Rank 16"]=16,
 };
-local BS_BONUS = { 15, 30, 48, 69, 90, 135, 165, 210 };
+local BS_BONUS = { 15, 30, 48, 69, 90, 135, 165, 210, 225 };
 local AB_BONUS = { 70, 100, 125, 185, 230, 290 };
 local SS_BONUS = { 3, 6, 10, 15, 22, 33, 52, 68 };
 
